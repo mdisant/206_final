@@ -5,6 +5,7 @@ import json
 import tweepy 
 import sqlite3          
 import os
+import re
 
 consumer_key = "tv6h21bxvLZe4EfUKb6jEOngO"
 consumer_secret = "xHwJCd0Km4JqjxxzJlgfPYMtkbMGKvKQVdQfZb7hQYcMddRMGP"
@@ -16,50 +17,7 @@ bearer_token = "AAAAAAAAAAAAAAAAAAAAAPV4VwEAAAAABNBqe8IOkS6pIaOf%2Fn65R%2BH00k0%
 auth = tweepy.OAuthHandler(consumer_key, consumer_secret)
 auth.set_access_token(access_token, access_token_secret)
 api = tweepy.Client(bearer_token=bearer_token, consumer_key=consumer_key, consumer_secret=consumer_secret, access_token=access_token, access_token_secret=access_token_secret, return_type= dict)
-# consumer_key = "tv6h21bxvLZe4EfUKb6jEOngO"
-# consumer_secret = "xHwJCd0Km4JqjxxzJlgfPYMtkbMGKvKQVdQfZb7hQYcMddRMGP"
-# access_token = "2967918434-PBT2EGFDYnhEABVox00z6hk8zxlbkIO1kmO48uy"
-# access_token_secret = "gWltdO8LBAfOtfv7X5s3BZvnhCpKkpisJAZD4q3taQqgh"
 
-# auth = tweepy.OAuthHandler(consumer_key, consumer_secret)
-# auth.set_access_token(access_token, access_token_secret)
-# api = tweepy.API(auth, timeout=1200, parser=tweepy.parsers.JSONParser(), wait_on_rate_limit=True, retry_count=3)
-
-# To set your environment variables in your terminal run the following line:
-# export 'BEARER_TOKEN'='<your_bearer_token>'
-# bearer_token = os.environ.get("AAAAAAAAAAAAAAAAAAAAAPV4VwEAAAAABNBqe8IOkS6pIaOf%2Fn65R%2BH00k0%3DEAttM3EYnstTxcHXx2mNzrapL6g1xMQYbZVumRriagVMXDXtS4")
-
-# search_url = "https://api.twitter.com/2/tweets/counts/recent"
-
-# # Optional params: start_time,end_time,since_id,until_id,next_token,granularity
-# query_params = {'query': 'from:twitterdev','granularity': 'day'}
-
-
-# def bearer_oauth(r):
-#     """
-#     Method required by bearer token authentication.
-#     """
-
-#     r.headers["Authorization"] = f"Bearer {bearer_token}"
-#     r.headers["User-Agent"] = "v2RecentTweetCountsPython"
-#     return r
-
-
-# def connect_to_endpoint(url, params):
-#     response = requests.request("GET", search_url, auth=bearer_oauth, params=params)
-#     print(response.status_code)
-#     if response.status_code != 200:
-#         raise Exception(response.status_code, response.text)
-#     return response.json()
-
-
-# def main():
-#     json_response = connect_to_endpoint(search_url, query_params)
-#     print(json.dumps(json_response, indent=4, sort_keys=True))
-
-
-# if __name__ == "__main__":
-#     main()
 
 def getTweets():
     # using beautiful soup to get data from the Top Grossing Movies of 2019
@@ -90,14 +48,37 @@ def create_twitter_table():
     # for name in movie_names:
     #     existing_movies.append(name[0])
     # key = len(movie_names)
+    emoji_pattern = re.compile("["
+        u"\U0001F600-\U0001F64F"  # emoticons
+        u"\U0001F300-\U0001F5FF"  # symbols & pictographs
+        u"\U0001F680-\U0001F6FF"  # transport & map symbols
+        u"\U0001F1E0-\U0001F1FF"  # flags (iOS)
+                           "]+", flags=re.UNICODE)
 
     crypto_list = ['bitcoin', 'ethereum', 'solana']
+    key = 0
+    tuple_list = []
     # goes through the mvoies from MovieChart_2019
     for crypto in crypto_list:
     #     crypto = crypto[0]
 
         # search for the movie in Twitter and grab the results from the search
         results = api.search_recent_tweets(query=crypto)
+        tweet_id_list = []
+        text_list = []
+        key_list = []
+        results_list = results['data']
+        for dict in results_list:
+            tweet_id_list.append(dict['id'])
+            text_stripped = dict['text'].replace('/n', ' ')
+            text_demoji = emoji_pattern.sub(r'', text_stripped)
+            text_list.append(text_demoji)
+            key_list.append(key)
+            tuple_list.append((key, dict['id'], text_demoji))
+        key += 1
+        # strip newline and emojis
+
+
         # count = api.get_recent_tweet_count(query=crypto)
         retweet_count = 0
         mentions_count = 0
@@ -123,33 +104,56 @@ def create_twitter_table():
             # status_count = result['user']['statuses_count']
             # statuses_count += status_count
             # mentions_count += 1
-        
-        
-        print(results)
+        # print(tweet_id_list)
+        # print(text_list)
+        # print(key_list)
+    print(tuple_list)
+    return tuple_list
 
-#         # put the data into the Twitter_Data table
-#         # cur.execute("INSERT OR IGNORE INTO Twitter_Data (Twitter_Id, Movie_Title, Movie_Mentions, Movie_Favorited, Follower_Count, Retweet, Friends_Count, Listed_Count, Statuses_Count) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", 
-#         # (crypto, mentions_count, favorite_count, follower_count, retweet_count, friends_count, listed_count, statuses_count))
- 
-#     # conn.commit()
-#     # status = soup.findall("statuses")
-#     # print(status)
+def setUpDatabase(db_name):
+    path = os.path.dirname(os.path.abspath(__file__))
+    conn = sqlite3.connect(path+'/'+db_name)
+    cur = conn.cursor()
+    return cur, conn
+    # pass name in main function
 
-# # def setUpDatabase(con, cur):
-# #     """Takes in the database cursor and connection as inputs. Returns nothing. Creates Twitter_Data table. 
-# #     Uses the crypto_name column from the crypto_chart table to find tweets mentioning the cryptocurrency name."""
-# #     cur.execute("CREATE TABLE IF NOT EXISTS Twitter_Data (twitter_id INTEGER UNIQUE, crypto_name TEXT UNIQUE, PRIMARY KEY(twitter_id AUTOINCREMENT))")
+# 3 cols, primary id (which crypto), tweet id, and text
+
+def setUpCategoriesTable(tupleslist, cur, conn):
+
+    # loop through bigger dict first, value to data key is list of dicts
+    # nested for loop
+
+    cur.execute("DROP TABLE Tweets")
+    cur.execute("CREATE TABLE Tweets (id INTEGER, tweet_id INTEGER PRIMARY KEY, text TEXT)")
     
-# #     # grab crypto names from the crypto_chart table
-# #     cur.execute('SELECT crypto_name FROM crypto_chart')
-# #     crypto_list = cur.fetchall()
+    for tup in tupleslist:
+        cur.execute("INSERT INTO Tweets (id,tweet_id, text) VALUES (?,?, ?)",(tup[0],tup[1], tup[2]))
+    conn.commit()
 
-# #     # grab crypto names from the Twitter_Data
-# #     cur.execute('SELECT crypto_name FROM Twitter_Data')
-# #     crypto_names = cur.fetchall()
+        # put the data into the Twitter_Data table
+        # cur.execute("INSERT OR IGNORE INTO Twitter_Data (Twitter_Id, Movie_Title, Movie_Mentions, Movie_Favorited, Follower_Count, Retweet, Friends_Count, Listed_Count, Statuses_Count) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", 
+        # (crypto, mentions_count, favorite_count, follower_count, retweet_count, friends_count, listed_count, statuses_count))
+ 
+    # conn.commit()
+    # status = soup.findall("statuses")
+    # print(status)
 
-# #     # empty list for cryptos
-# #     crypto_list = []
+# def setUpDatabase(con, cur):
+#     """Takes in the database cursor and connection as inputs. Returns nothing. Creates Twitter_Data table. 
+#     Uses the crypto_name column from the crypto_chart table to find tweets mentioning the cryptocurrency name."""
+#     cur.execute("CREATE TABLE IF NOT EXISTS Twitter_Data (twitter_id INTEGER UNIQUE, crypto_name TEXT UNIQUE, PRIMARY KEY(twitter_id AUTOINCREMENT))")
+    
+#     # grab crypto names from the crypto_chart table
+#     cur.execute('SELECT crypto_name FROM crypto_chart')
+#     crypto_list = cur.fetchall()
+
+#     # grab crypto names from the Twitter_Data
+#     cur.execute('SELECT crypto_name FROM Twitter_Data')
+#     crypto_names = cur.fetchall()
+
+#     # empty list for cryptos
+#     crypto_list = []
 
 # # def setUpCategoriesTable(data, cur, conn):
 # #     category_list = []
@@ -172,6 +176,8 @@ def main():
 #     set_up_distributor_id_table(), fillup_table(), and write_data_to_file(). Closes the database connection."""
 #     # getTweets()
      create_twitter_table()
+     cur,conn = setUpDatabase('tweets.db')
+     setUpCategoriesTable(create_twitter_table(), cur, conn)
 #     # cur, conn = setUpDatabase('movies.db')
 #     # created_tables(cur, conn)
 #     # set_up_genre_id_table(cur, conn)
