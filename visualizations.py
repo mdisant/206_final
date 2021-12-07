@@ -2,6 +2,7 @@ import sqlite3
 import os
 import matplotlib.pyplot as plt
 import numpy as np
+from statistics import stdev
 
 def setUpDatabase(db_name):
     path = os.path.dirname(os.path.abspath(__file__))
@@ -34,6 +35,24 @@ def viz_two(xlist, ylist):
     plt.title("Percentage of Price Increase for Cryptocurrency over 7 Days vs Number of Times the Cryptocurrency was Mentioned on Twitter")
     plt.show()
 
+def calculate_correlation(xlist_tups, ylist_tups):
+    xlist = [tup[0] for tup in xlist_tups]
+    ylist = [tup[0] for tup in ylist_tups]
+
+    r = 0
+    
+    stdev_x = stdev(xlist)
+    stdev_y = stdev(ylist)
+    avg_x = sum(xlist) / len(xlist)
+    avg_y = sum(ylist) / len(ylist)
+
+    for i in range(len(xlist)):
+        x_dif = (xlist[i] - avg_x) / stdev_x
+        y_dif = (ylist[i] - avg_y) / stdev_y
+        r += x_dif * y_dif
+    
+    corr = r * r
+    return corr
 
 def main():
 
@@ -44,6 +63,7 @@ def main():
     cur.execute("SELECT increase_24h FROM Combined")
     hour_list = cur.fetchall()
     viz_one(count_list, hour_list)
+    calculate_correlation(count_list, hour_list)
     cur.execute("SELECT increase_7d FROM Combined")
     day_list = cur.fetchall()
     viz_two(count_list, day_list)
