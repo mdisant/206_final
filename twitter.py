@@ -12,42 +12,17 @@ consumer_secret = "xHwJCd0Km4JqjxxzJlgfPYMtkbMGKvKQVdQfZb7hQYcMddRMGP"
 access_token = "2967918434-PBT2EGFDYnhEABVox00z6hk8zxlbkIO1kmO48uy"
 access_token_secret = "gWltdO8LBAfOtfv7X5s3BZvnhCpKkpisJAZD4q3taQqgh"
 bearer_token = "AAAAAAAAAAAAAAAAAAAAAPV4VwEAAAAABNBqe8IOkS6pIaOf%2Fn65R%2BH00k0%3DEAttM3EYnstTxcHXx2mNzrapL6g1xMQYbZVumRriagVMXDXtS4"
-
-
 auth = tweepy.OAuthHandler(consumer_key, consumer_secret)
 auth.set_access_token(access_token, access_token_secret)
 api = tweepy.Client(bearer_token=bearer_token, consumer_key=consumer_key, consumer_secret=consumer_secret, access_token=access_token, access_token_secret=access_token_secret, return_type= dict)
-
-
-def getTweets():
-    # using beautiful soup to get data from the Top Grossing Movies of 2019
-    base_url = 'https://api.twitter.com/1.1/search/tweets.json?q=from%3Aelonmusk%20%23bitcoin&result_type=popular'
-    r = requests.get(base_url)
-    soup = BeautifulSoup(r.text, 'html.parser')
     
 
-def create_twitter_table():
-    """Takes in the database cursor and connection as inputs. Returns nothing. Creates Twitter_Data table. 
-    Uses the Movie_Title column from the MovieChart_2019 table to find tweets containing the movie title. 
-    Adds number of favorites per search, followers, number of mentions, retweets, friends count, listed count, and statuses count per search for each of the movies."""
-   
-    # cur.execute("CREATE TABLE IF NOT EXISTS Twitter_Data (Twitter_Id INTEGER UNIQUE, Movie_Title TEXT UNIQUE, Movie_Mentions INTEGER, Movie_Favorited INTEGER, Follower_Count INTEGER, Retweet INTEGER, Friends_Count INTEGER, Listed_Count INTEGER, Statuses_Count INTEGER, PRIMARY KEY(Twitter_Id AUTOINCREMENT))")
+def create_twitter_tuple(cur, conn):
     
-    # # grab movie titles from the MovieChart_2019 table
-    # cur.execute('SELECT Movie_Title FROM MovieChart_2019')
-    # movie_list = cur.fetchall()
-
-    # # grab movie titles from the Twitter_Data
-    # cur.execute('SELECT Movie_Title FROM Twitter_Data')
-    # movie_names = cur.fetchall()
-
-    # # empty list for the movies 
-    # existing_movies = []
-
-    # # add name from Twitter_Data into the list and find the length of the list
-    # for name in movie_names:
-    #     existing_movies.append(name[0])
-    # key = len(movie_names)
+    # grab crypto names from the Crypto table
+    cur.execute('SELECT name FROM Crypto')
+    crypto_list = cur.fetchall()
+    # prepare to strip text of emojis etc. 
     emoji_pattern = re.compile("["
         u"\U0001F600-\U0001F64F"  # emoticons
         u"\U0001F300-\U0001F5FF"  # symbols & pictographs
@@ -55,18 +30,20 @@ def create_twitter_table():
         u"\U0001F1E0-\U0001F1FF"  # flags (iOS)
                            "]+", flags=re.UNICODE)
 
-    crypto_list = ['bitcoin', 'ethereum', 'solana']
     key = 0
     tuple_list = []
-    # goes through the mvoies from MovieChart_2019
+    # goes through the cryptos from Crypto table
     for crypto in crypto_list:
-    #     crypto = crypto[0]
 
-        # search for the movie in Twitter and grab the results from the search
-        results = api.search_recent_tweets(query=crypto)
+        # search for the crypto in Twitter and grab the results from the search
+        results = api.search_recent_tweets(query=crypto, max_results = 25)
+        print(results)
         tweet_id_list = []
         text_list = []
         key_list = []
+        favorites_list = []
+        followers_list = []
+        retweets_list = []
         results_list = results['data']
         for dict in results_list:
             tweet_id_list.append(dict['id'])
@@ -76,7 +53,6 @@ def create_twitter_table():
             key_list.append(key)
             tuple_list.append((key, dict['id'], text_demoji))
         key += 1
-        # strip newline and emojis
 
 
         # count = api.get_recent_tweet_count(query=crypto)
@@ -107,7 +83,6 @@ def create_twitter_table():
         # print(tweet_id_list)
         # print(text_list)
         # print(key_list)
-    print(tuple_list)
     return tuple_list
 
 def setUpDatabase(db_name):
@@ -119,17 +94,23 @@ def setUpDatabase(db_name):
 
 # 3 cols, primary id (which crypto), tweet id, and text
 
-def setUpCategoriesTable(tupleslist, cur, conn):
+def setUpTweetsTable(tupleslist, cur, conn):
 
     # loop through bigger dict first, value to data key is list of dicts
     # nested for loop
-
-    cur.execute("DROP TABLE Tweets")
-    cur.execute("CREATE TABLE Tweets (id INTEGER, tweet_id INTEGER PRIMARY KEY, text TEXT)")
+    cur.execute("CREATE TABLE IF NOT EXISTS Tweets (id INTEGER, tweet_id INTEGER UNIQUE, text TEXT)")
+    count = 0
     
+    # ensures 25 entries at a time, run code 4 times
     for tup in tupleslist:
-        cur.execute("INSERT INTO Tweets (id,tweet_id, text) VALUES (?,?, ?)",(tup[0],tup[1], tup[2]))
+        if count == 25:
+            break
+        cur.execute("INSERT OR IGNORE INTO Tweets (id,tweet_id, text) VALUES (?,?, ?)",(tup[0],tup[1], tup[2]))
+        if cur.rowcount == 1:
+            count += 1
     conn.commit()
+
+    
 
         # put the data into the Twitter_Data table
         # cur.execute("INSERT OR IGNORE INTO Twitter_Data (Twitter_Id, Movie_Title, Movie_Mentions, Movie_Favorited, Follower_Count, Retweet, Friends_Count, Listed_Count, Statuses_Count) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", 
@@ -172,20 +153,13 @@ def setUpCategoriesTable(tupleslist, cur, conn):
 
 def main():
 #     """Takes nothing as an input and returns nothing. 
-#     Calls the functions created_tables(), set_up_genre_id_table(), set_up_date_id_table(), 
-#     set_up_distributor_id_table(), fillup_table(), and write_data_to_file(). Closes the database connection."""
-#     # getTweets()
-     create_twitter_table()
-     cur,conn = setUpDatabase('tweets.db')
-     setUpCategoriesTable(create_twitter_table(), cur, conn)
-#     # cur, conn = setUpDatabase('movies.db')
-#     # created_tables(cur, conn)
-#     # set_up_genre_id_table(cur, conn)
-#     # set_up_date_id_table(cur, conn)
-#     # set_up_distributor_id_table(cur,conn)
-#     # fillup_table(cur, conn)
-#     # write_data_to_file("movie_data.txt", cur, conn)
-#     # conn.close()
+
+    cur,conn = setUpDatabase('crypto.db')
+    result = create_twitter_tuple(cur, conn)
+
+    setUpTweetsTable(result, cur, conn)
+
+    conn.close()
 
 if __name__ == "__main__":
     main()
