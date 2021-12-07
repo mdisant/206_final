@@ -79,6 +79,13 @@ def make_combined_table(data, cur, conn):
     
     conn.commit()
 
+def write_out_data(fname, cur):
+    with open(fname, "w") as f:
+        cur.execute("SELECT * FROM Combined")
+        for data in cur:
+            w_str = f"{data[0]} has {data[1]} recent tweets and the price has changed {data[2]}% in the past 24h and {data[3]}% in the past 7 days.\n"
+            f.write(w_str)
+
 
 def main():
 
@@ -88,7 +95,7 @@ def main():
     setUpTweetsTable(result, cur, conn)
     combined = combined_data(cur)
     make_combined_table(combined, cur, conn)
-
+    write_out_data("twitter.txt", cur)
     conn.close()
 
 if __name__ == "__main__":
