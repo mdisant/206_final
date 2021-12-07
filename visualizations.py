@@ -10,19 +10,12 @@ def setUpDatabase(db_name):
 
     return cur, conn
 
-# Create a scatter plot vizualization using matplotlib with the data returned from most_pop_movie
-# def viz_one(xlist, ylist):
-#     plt.scatter(xlist, ylist, color = "orange")
-#     plt.xticks(xlist, rotation = 20)
-#     plt.Axes.set_xscale(100, "linear")
-#     plt.xlabel("Tweet Count")
-#     plt.ylabel("Percentage Increase over 24 Hours")
-#     plt.title("Percentage of Price Increase for Cryptocurrency vs Number of Times the Cryptocurrency was Mentioned on Twitter")
-#     plt.show()
+
 def viz_one(xlist, ylist):
     fig, ax = plt.subplots()
     ax.scatter(xlist, ylist, color = "orange")
-    ax.set_xticks(np.arange(0, 11000, 500))
+    ax.set_xticks(np.arange(0, 12000, 500))
+    ax.set_xlim(0, 5000) # gets rid of outliers 
     plt.xlabel("Tweet Count")
     plt.ylabel("Percentage Increase over 24 Hours")
     plt.title("Percentage of Price Increase for Cryptocurrency over 24 Hours vs Number of Times the Cryptocurrency was Mentioned on Twitter")
@@ -30,21 +23,21 @@ def viz_one(xlist, ylist):
     #discuss outliers
 
 
-# Create a pie chart vizualization using matplotlib with the data returned from most_pop_movie
+# Create a scatter chart vizualization using matplotlib with the data returned from Combined table
 def viz_two(xlist, ylist):
     fig, ax = plt.subplots()
     ax.scatter(xlist, ylist, color = "blue")
     ax.set_xticks(np.arange(0, 11000, 500))
+    ax.set_xlim(0, 5000) # gets rid of outliers 
     plt.xlabel("Tweet Count")
     plt.ylabel("Percentage Increase over 7 days")
     plt.title("Percentage of Price Increase for Cryptocurrency over 7 Days vs Number of Times the Cryptocurrency was Mentioned on Twitter")
     plt.show()
 
-# Uncomment this to make sure your function works
-# uncomment these one at a time to see the visualizations
+
 def main():
 
-    cur,conn = setUpDatabase('crypto.db') #make fucntion 
+    cur,conn = setUpDatabase('crypto.db') 
     # select statement 
     cur.execute("SELECT count FROM Combined")
     count_list = cur.fetchall()
