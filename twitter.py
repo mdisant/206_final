@@ -30,14 +30,13 @@ def create_twitter_tuple(cur, conn):
         u"\U0001F1E0-\U0001F1FF"  # flags (iOS)
                            "]+", flags=re.UNICODE)
 
-    key = 0
+    crypto_key_list = [1, 52, 74, 825, 1027, 1839, 2010, 3408, 3635, 3890, 4172, 5426, 5805, 5994, 6636]
     tuple_list = []
     # goes through the cryptos from Crypto table
     for crypto in crypto_list:
 
         # search for the crypto in Twitter and grab the results from the search
         results = api.search_recent_tweets(query=crypto, max_results = 25)
-        print(results)
         tweet_id_list = []
         text_list = []
         key_list = []
@@ -50,10 +49,9 @@ def create_twitter_tuple(cur, conn):
             text_stripped = dict['text'].replace('/n', ' ')
             text_demoji = emoji_pattern.sub(r'', text_stripped)
             text_list.append(text_demoji)
-            key_list.append(key)
-            tuple_list.append((key, dict['id'], text_demoji))
-        key += 1
-
+            # key_list.append(key)
+            tuple_list.append((crypto[0], dict['id'], text_demoji))
+        
 
         # count = api.get_recent_tweet_count(query=crypto)
         retweet_count = 0
@@ -83,6 +81,7 @@ def create_twitter_tuple(cur, conn):
         # print(tweet_id_list)
         # print(text_list)
         # print(key_list)
+    print(tuple_list)
     return tuple_list
 
 def setUpDatabase(db_name):
@@ -98,14 +97,15 @@ def setUpTweetsTable(tupleslist, cur, conn):
 
     # loop through bigger dict first, value to data key is list of dicts
     # nested for loop
-    cur.execute("CREATE TABLE IF NOT EXISTS Tweets (id INTEGER, tweet_id INTEGER UNIQUE, text TEXT)")
+    cur.execute("DROP TABLE Tweets")
+    cur.execute("CREATE TABLE IF NOT EXISTS Tweets (crypto TEXT PRIMARY KEY, tweet_id INTEGER UNIQUE, text TEXT)")
     count = 0
     
     # ensures 25 entries at a time, run code 4 times
     for tup in tupleslist:
         if count == 25:
             break
-        cur.execute("INSERT OR IGNORE INTO Tweets (id,tweet_id, text) VALUES (?,?, ?)",(tup[0],tup[1], tup[2]))
+        cur.execute("INSERT OR IGNORE INTO Tweets (crypto, tweet_id, text) VALUES (?,?, ?)",(tup[0], tup[1], tup[2]))
         if cur.rowcount == 1:
             count += 1
     conn.commit()
