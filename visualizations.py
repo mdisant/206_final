@@ -10,8 +10,28 @@ def setUpDatabase(db_name):
 
     return cur, conn
 
+def bar_one(cur):
+    cur.execute("SELECT Crypto.name, Tweets.tweet_count from Tweets JOIN Crypto ON Tweets.id = Crypto.crypto_id")
+    data = cur.fetchall()
+    
+    xlist = [tup[0] for tup in data]
+    ylist = [tup[1] for tup in data]
 
-def viz_one(xlist, ylist):
+    plt.bar(xlist, ylist, color = "blue")
+    plt.xlabel("Crypto Name")
+    plt.ylabel("Number of Tweets")
+    plt.title("Number of Tweets for Cryptocurrencies")
+    plt.xticks(rotation=90)
+
+    plt.show()
+
+def scatter_one(cur):
+    cur.execute("SELECT Tweets.tweet_count, Crypto.percent_change_24h from Tweets JOIN Crypto ON Tweets.id = Crypto.crypto_id")
+    data = cur.fetchall()
+    
+    xlist = [tup[0] for tup in data]
+    ylist = [tup[1] for tup in data]
+
     fig, ax = plt.subplots()
     ax.scatter(xlist, ylist, color = "orange")
     ax.set_xticks(np.arange(0, 12000, 500))
@@ -24,7 +44,13 @@ def viz_one(xlist, ylist):
 
 
 # Create a scatter chart vizualization using matplotlib with the data returned from Combined table
-def viz_two(xlist, ylist):
+def scatter_two(cur):
+    cur.execute("SELECT Tweets.tweet_count, Crypto.percent_change_7d from Tweets JOIN Crypto ON Tweets.id = Crypto.crypto_id")
+    data = cur.fetchall()
+    
+    xlist = [tup[0] for tup in data]
+    ylist = [tup[1] for tup in data]
+
     fig, ax = plt.subplots()
     ax.scatter(xlist, ylist, color = "blue")
     ax.set_xticks(np.arange(0, 11000, 500))
@@ -34,28 +60,12 @@ def viz_two(xlist, ylist):
     plt.title("Percentage of Price Increase for Cryptocurrency over 7 Days vs Number of Times the Cryptocurrency was Mentioned on Twitter")
     plt.show()
 
-def calculate_correlation(xlist_tups, ylist_tups):
-    xlist = [tup[0] for tup in xlist_tups]
-    ylist = [tup[0] for tup in ylist_tups]
-
-    corr = np.corrcoef(xlist, ylist)
-
-    return corr
-
 def main():
 
     cur,conn = setUpDatabase('crypto.db') 
-    # select statement 
-    cur.execute("SELECT count FROM Combined")
-    count_list = cur.fetchall()
-    cur.execute("SELECT increase_24h FROM Combined")
-    hour_list = cur.fetchall()
-    viz_one(count_list, hour_list)
-    calculate_correlation(count_list, hour_list)
-    cur.execute("SELECT increase_7d FROM Combined")
-    day_list = cur.fetchall()
-    viz_two(count_list, day_list)
-    calculate_correlation(count_list, day_list)
+    bar_one(cur)
+    scatter_one(cur)
+    scatter_two(cur)
 
     conn.close()
 
