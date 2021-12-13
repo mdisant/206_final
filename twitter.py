@@ -19,6 +19,9 @@ auth.set_access_token(access_token, access_token_secret)
 api = tweepy.Client(bearer_token=bearer_token, consumer_key=consumer_key, consumer_secret=consumer_secret, access_token=access_token, access_token_secret=access_token_secret, return_type= dict)
     
 def create_twitter_tuple(cur):
+    ''' Takes in database curser from cyrpto.db as a parameter. 
+    Selects cryptocurrency name and id from Crypto table and searches the Twitter API for the the tweet counts of tweets that mention each Cryptocurrency.
+    Creates and returns a list of tuples containing the cryptocurrency name and the tweet count '''
     cur.execute('SELECT name, crypto_id FROM Crypto')
     crypto_list = cur.fetchall()
 
@@ -33,6 +36,7 @@ def create_twitter_tuple(cur):
     return tuple_list
 
 def setUpDatabase(db_name):
+    ''' Takes in database name (crypto.db) as parameter. Returns the connection and curser for the database'''
     path = os.path.dirname(os.path.abspath(__file__))
     conn = sqlite3.connect(path+'/'+db_name)
     cur = conn.cursor()
@@ -40,7 +44,8 @@ def setUpDatabase(db_name):
     return cur, conn
 
 def setUpTweetsTable(tuple_list, cur, conn):
-    # cur.execute("DROP TABLE IF EXISTS Tweets")
+    ''' Takes in list of tuples from create_twitter_table() and the connection and curser from setUpDatabase() as parameters.
+    Creates Tweets table containing cryptocurrency id and tweet count'''
     cur.execute("CREATE TABLE IF NOT EXISTS Tweets (id INTEGER PRIMARY KEY, tweet_count INTEGER)")
     count = 0
     
@@ -53,6 +58,7 @@ def setUpTweetsTable(tuple_list, cur, conn):
     conn.commit()
 
 def calculate_correlation(cur, timeline):
+    ''' '''
     cur.execute(f"SELECT Tweets.tweet_count, Crypto.{timeline} from Tweets JOIN Crypto ON Tweets.id = Crypto.crypto_id")
     corr_data = cur.fetchall()
 
