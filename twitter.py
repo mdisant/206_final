@@ -22,6 +22,7 @@ def create_twitter_tuple(cur):
     ''' Takes in database curser from cyrpto.db as a parameter. 
     Selects cryptocurrency name and id from Crypto table and searches the Twitter API for the the tweet counts of tweets that mention each Cryptocurrency.
     Creates and returns a list of tuples containing the cryptocurrency name and the tweet count '''
+    
     cur.execute('SELECT name, crypto_id FROM Crypto')
     crypto_list = cur.fetchall()
 
@@ -37,6 +38,7 @@ def create_twitter_tuple(cur):
 
 def setUpDatabase(db_name):
     ''' Takes in database name (crypto.db) as parameter. Returns the connection and curser for the database'''
+    
     path = os.path.dirname(os.path.abspath(__file__))
     conn = sqlite3.connect(path+'/'+db_name)
     cur = conn.cursor()
@@ -46,6 +48,7 @@ def setUpDatabase(db_name):
 def setUpTweetsTable(tuple_list, cur, conn):
     ''' Takes in list of tuples from create_twitter_table() and the connection and curser from setUpDatabase() as parameters.
     Creates Tweets table containing cryptocurrency id and tweet count'''
+    
     cur.execute("CREATE TABLE IF NOT EXISTS Tweets (id INTEGER PRIMARY KEY, tweet_count INTEGER)")
     count = 0
     
@@ -58,7 +61,10 @@ def setUpTweetsTable(tuple_list, cur, conn):
     conn.commit()
 
 def calculate_correlation(cur, timeline):
-    ''' '''
+    '''Takes in the cursor to the database and the timeline to calculate a correlation (either "percent_change_7d" or 
+    "percent_change_7d" and returns the correlation (rounded to 5 decimal places) as a float between the timeline parameter 
+    and number of Tweets for all cryptocurrencies in the crypto table'''
+    
     cur.execute(f"SELECT Tweets.tweet_count, Crypto.{timeline} from Tweets JOIN Crypto ON Tweets.id = Crypto.crypto_id")
     corr_data = cur.fetchall()
 
@@ -84,6 +90,8 @@ def calculate_correlation(cur, timeline):
     return round(corr, 5)
 
 def write_out_data(fname, cur):
+    '''Takes in the file name to write to and the cursor to the database and writes the two correlation calculations out to the file'''
+    
     correlation_24h = calculate_correlation(cur, "percent_change_7d")
     correlation_7d = calculate_correlation(cur, "percent_change_24h")
 

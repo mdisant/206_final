@@ -6,15 +6,15 @@ import os.path
 import sqlite3
 import itertools
 
-temp_filename = "run_number"
+TEMP_FILENAME = "run_number.txt"
 
 API_KEY = "8f88d41f-55db-4622-858d-6a7fa5b57d4e"
-
 
 def get_crypto_data(num):
     ''' Reads in data from CoinMarketCap API and returns dictionary of data including the id, symbol, name, 
         price, percent change in price over 24 hours, and percent change in price over 7 days. 
         Takes in the start number as a parameter (from read_file()), which changes by 25 each time the file is ran'''
+    
     url = "https://pro-api.coinmarketcap.com/v1/cryptocurrency/listings/latest"
     parameters = {
         'start':num+1,
@@ -31,11 +31,11 @@ def get_crypto_data(num):
 
     response = session.get(url, params=parameters)
     data = json.loads(response.text)
-    
     return data
 
 def setUpDatabase(db_name):
     '''takes in database name (crypto.db) as parameter and returns the connection and curser for the database'''
+    
     path = os.path.dirname(os.path.abspath(__file__))
     conn = sqlite3.connect(path+'/'+db_name)
     cur = conn.cursor()
@@ -45,6 +45,7 @@ def make_crypto_table(data_dict, cur, conn, num):
     ''' takes in the dictionary returned from get_crypto_data() and the connection and the curser from the database as parameters. 
     Creates lists for the crypto id, crypto name, crypto price, percent change over 24 hours, and percent change over 7 days.
     Creates a table for the cryptocurrency data and ensures that only 25 entries are added at a time'''
+    
     id_list = []
     name_list = []
     price_list = []
@@ -75,19 +76,20 @@ def make_crypto_table(data_dict, cur, conn, num):
 def read_file():
     ''' Reads from the run_number file which stores the start number that we will input in get_crypto_data().
         If no file exists (we haven't ran crypto.py yet) then the start number is 0'''
-    if not os.path.isfile(temp_filename):
+    
+    if not os.path.isfile(TEMP_FILENAME):
         return 0
     else:
-        f = open(temp_filename, "r")
+        f = open(TEMP_FILENAME, "r")
         lines = f.read()
         run_number = int(lines)
         f.close()
         return run_number
 
-
 def write_file(num):
     ''' Takes num from read_file() as a parameter and writes it to the run_number file'''
-    f = open(temp_filename, "w")
+    
+    f = open(TEMP_FILENAME, "w")
     f.write(str(num))
     f.close()
 
