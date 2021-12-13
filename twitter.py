@@ -40,12 +40,16 @@ def setUpDatabase(db_name):
     return cur, conn
 
 def setUpTweetsTable(tuple_list, cur, conn):
-    cur.execute("DROP TABLE IF EXISTS Tweets")
-    cur.execute("CREATE TABLE Tweets (id INTEGER PRIMARY KEY, tweet_count INTEGER)")
+    # cur.execute("DROP TABLE IF EXISTS Tweets")
+    cur.execute("CREATE TABLE IF NOT EXISTS Tweets (id INTEGER PRIMARY KEY, tweet_count INTEGER)")
+    count = 0
     
     for tup in tuple_list:
+        if count == 25:
+             break
         cur.execute("INSERT OR IGNORE INTO Tweets (id, tweet_count) VALUES (?,?)",(tup[0], tup[1]))
-    
+        if cur.rowcount == 1:
+             count += 1
     conn.commit()
 
 def calculate_correlation(cur, timeline):
@@ -81,6 +85,8 @@ def write_out_data(fname, cur):
         f.write(f"The calculated Pearson Correlation Coefficient between number of Tweets and percent change in the past 24 hours is:\n{correlation_24h}\n")
         f.write("\n")
         f.write(f"The calculated Pearson Correlation Coefficient between number of Tweets and percent change in the past 7 days is:\n{correlation_7d}\n")
+
+
 
 def main():
     cur,conn = setUpDatabase('crypto.db')

@@ -1,5 +1,5 @@
 The calculated Pearson Correlation Coefficient between number of Tweets and percent change in the past 24 hours is:
--0.11016
+-0.06914
 
 The calculated Pearson Correlation Coefficient between number of Tweets and percent change in the past 7 days is:
-0.10271
+0.01902
