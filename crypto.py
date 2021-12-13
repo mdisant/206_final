@@ -2,17 +2,19 @@
 from requests import Request, Session
 import json
 import os
+import os.path
 import sqlite3
 import itertools
 
+temp_filename = "run_number"
 
 API_KEY = "8f88d41f-55db-4622-858d-6a7fa5b57d4e"
 
-def get_crypto_data():
+def get_crypto_data(num):
     url = "https://pro-api.coinmarketcap.com/v1/cryptocurrency/listings/latest"
     parameters = {
-        'start':'1',
-        'limit':'100',
+        'start':num+1,
+        'limit':'25',
         'convert':'USD'
     }
     headers = {
@@ -25,7 +27,7 @@ def get_crypto_data():
 
     response = session.get(url, params=parameters)
     data = json.loads(response.text)
-
+    print(data)
     return data
 
 def setUpDatabase(db_name):
@@ -34,7 +36,7 @@ def setUpDatabase(db_name):
     cur = conn.cursor()
     return cur, conn
 
-def make_crypto_table(data_dict, cur, conn):
+def make_crypto_table(data_dict, cur, conn, num):
     id_list = []
     name_list = []
     price_list = []
@@ -86,28 +88,45 @@ def make_crypto_table(data_dict, cur, conn):
     #     start = start[0]
     # except:
     #     start= 0
-    # count = 0
-    # for i in id_list[start:start+25]:
-    #     if count == 25:
-    #         break
-    #     cur.execute("INSERT INTO Crypto (id, name, crypto_id, price, percent_change_24h, percent_change_7d) VALUES (?, ?, ?, ?, ?, ?)", (i+count, name_list[i], id_list[i], price_list[i], percent_change_24h_list[i], percent_change_7d_list[i]))
-    #     if cur.rowcount == 1:
-    #         count += 1
-
-    conn.commit()
-
+    count = 0
     for i in range(len(id_list)):
-        cur.execute("INSERT INTO Crypto (id, name, crypto_id, price, percent_change_24h, percent_change_7d) VALUES (?, ?, ?, ?, ?, ?)", (i+count, name_list[i], id_list[i], price_list[i], percent_change_24h_list[i], percent_change_7d_list[i]))
+        if count == 25:
+            break
+        cur.execute("INSERT INTO Crypto (id, name, crypto_id, price, percent_change_24h, percent_change_7d) VALUES (?, ?, ?, ?, ?, ?)", (i+num, name_list[i], id_list[i], price_list[i], percent_change_24h_list[i], percent_change_7d_list[i]))
         if cur.rowcount == 1:
             count += 1
 
     conn.commit()
 
+    # for i in range(len(id_list)):
+    #     cur.execute("INSERT INTO Crypto (id, name, crypto_id, price, percent_change_24h, percent_change_7d) VALUES (?, ?, ?, ?, ?, ?)", (i+count, name_list[i], id_list[i], price_list[i], percent_change_24h_list[i], percent_change_7d_list[i]))
+    #     if cur.rowcount == 1:
+    #         count += 1
+
+    # conn.commit()
+def read_file():
+    if not os.path.isfile(temp_filename):
+        return 0
+    else:
+        f = open(temp_filename, "r")
+        lines = f.read()
+        run_number = int(lines)
+        f.close()
+        return run_number
+
+
+def write_file(num):
+    f = open(temp_filename, "w")
+    f.write(str(num))
+    f.close()
+
 def main():
-    data_dict = get_crypto_data()
+    num = read_file()
+    data_dict = get_crypto_data(num)
     cur, conn = setUpDatabase('crypto.db')
+    write_file(num+25)
     
-    make_crypto_table(data_dict, cur, conn)
+    make_crypto_table(data_dict, cur, conn, num)
 
     conn.close()
     
